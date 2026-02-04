@@ -1,18 +1,21 @@
-/* src/components/dashboard/DiaryCard.jsx */
 import React from "react";
 import { format } from "date-fns";
-import { Star, Smile } from "lucide-react";
+import { Star } from "lucide-react";
 
 const DiaryCard = ({ entry, onClick }) => {
-  // Extract text from markdown for preview (basic regex strip)
+  // Safe date handling
+  const dateObj =
+    entry.date instanceof Date ? entry.date : new Date(entry.date);
+
+  const day = format(dateObj, "d");
+  const month = format(dateObj, "MMM").toUpperCase();
+  const time = format(dateObj, "EEEE, h:mm a");
+
+  // Strip markdown for preview
   const getPreviewText = (md) => {
     if (!md) return "";
-    return md.replace(/[#*`_]/g, ""); // Simple strip
+    return md.replace(/[#*`_]/g, "");
   };
-
-  const day = format(entry.date, "d");
-  const month = format(entry.date, "MMM").toUpperCase();
-  const time = format(entry.date, "EEEE, h:mm a");
 
   return (
     <div

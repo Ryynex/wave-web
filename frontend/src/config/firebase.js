@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore"; // Added this
+import { getFirestore } from "firebase/firestore"; // <--- ADD THIS
 
 const firebaseConfig = {
   apiKey: "AIzaSyDdJGi-bfyR0fQ7qvGOrUI0KDDA2IbgXG8",
@@ -13,7 +13,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Exports
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
-export const db = getFirestore(app); // This fixes the import error
+export const db = getFirestore(app); // <--- ADD THIS EXPORT

@@ -1,32 +1,29 @@
-/* src/pages/Dashboard.jsx */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEncryption } from "../context/EncryptionContext";
 import { collection, query, getDocs, orderBy } from "firebase/firestore";
-import { db } from "../config/firebase"; // Ensure this exports your firestore instance
+import { db } from "../config/firebase";
 import VaultLockScreen from "../components/security/VaultLockScreen";
 import DiaryCard from "../components/dashboard/DiaryCard";
 import * as CryptoUtils from "../utils/cryptoUtils";
-import { RefreshCw, Plus } from "lucide-react";
+import { RefreshCw, Plus, Star, PlusCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
   const { isLocked, isLoading: isAuthLoading, masterKey } = useEncryption();
+  const navigate = useNavigate();
 
   const [entries, setEntries] = useState([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
-  const [activeTab, setActiveTab] = useState("all"); // 'all' or 'fav'
+  const [activeTab, setActiveTab] = useState("all");
   const [refreshing, setRefreshing] = useState(false);
 
-  // If locked or checking auth, show the Lock Screen
-  // The Lock Screen handles the 'Loading' state internaly via hasVault check
-  if (isAuthLoading || isLocked) {
-    return <VaultLockScreen />;
-  }
-
-  const fetchEntries = async () => {
+  // Fetch Logic
+  const fetchEntries = useCallback(async () => {
     if (!currentUser || !masterKey) return;
+
     setLoadingEntries(true);
     try {
       const q = query(
@@ -37,35 +34,53 @@ const Dashboard = () => {
 
       const decryptedPromises = snapshot.docs.map(async (doc) => {
         const data = doc.data();
-        // If the entry is marked as deleted (soft delete), skip it
+        // Skip deleted entries
         if (data.deleted) return null;
 
         // Decrypt
-        return await CryptoUtils.envelopeDecrypt(
+        const decrypted = await CryptoUtils.envelopeDecrypt(
           { id: doc.id, ...data },
           masterKey,
         );
+
+        if (decrypted.isError) return null;
+        return decrypted;
       });
 
       const results = await Promise.all(decryptedPromises);
-      setEntries(results.filter((e) => e !== null && !e.isError));
+      setEntries(results.filter((e) => e !== null));
     } catch (error) {
       console.error("Error fetching entries:", error);
     } finally {
       setLoadingEntries(false);
       setRefreshing(false);
     }
-  };
+  }, [currentUser, masterKey]);
 
-  // Initial Load
+  // Trigger Fetch
   useEffect(() => {
-    fetchEntries();
-  }, [masterKey]); // Fetch when masterKey becomes available
+    if (masterKey && !isLocked) {
+      fetchEntries();
+    }
+  }, [masterKey, isLocked, fetchEntries]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     fetchEntries();
   };
+
+  // Render Conditional States
+  if (isAuthLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-white">
+        Loading...
+      </div>
+    );
+  }
+
+  if (isLocked) {
+    return <VaultLockScreen />;
+  }
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -125,13 +140,13 @@ const Dashboard = () => {
         {/* Grid */}
         {loadingEntries ? (
           <div className="flex justify-center pt-20">
-            <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-blue-400/30 border-t-blue-500 rounded-full animate-spin" />
           </div>
         ) : filteredEntries.length === 0 ? (
           <div className="flex flex-col items-center justify-center pt-20 opacity-50">
             <div className="p-8 bg-blue-50 rounded-full mb-4">
               {activeTab === "all" ? (
-                <Plus size={40} className="text-blue-400" />
+                <PlusCircle size={40} className="text-blue-400" />
               ) : (
                 <Star size={40} className="text-amber-400" />
               )}
@@ -148,7 +163,7 @@ const Dashboard = () => {
               <DiaryCard
                 key={entry.id}
                 entry={entry}
-                onClick={() => console.log("Open Entry", entry.id)}
+                onClick={() => navigate(`/entry/${entry.id}`)}
               />
             ))}
           </div>
@@ -156,7 +171,10 @@ const Dashboard = () => {
       </div>
 
       {/* Floating Action Button */}
-      <button className="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center hover:scale-110 transition-transform">
+      <button
+        onClick={() => navigate("/create")}
+        className="fixed bottom-8 right-8 w-14 h-14 bg-[#00A9F4] text-white rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center hover:scale-110 transition-transform cursor-pointer z-50"
+      >
         <Plus size={28} />
       </button>
     </div>

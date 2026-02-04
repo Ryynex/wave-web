@@ -13,10 +13,7 @@ function b64ToBuff(str) {
 }
 
 /**
- * Replicates Dart's:
- * List<int> bytes = utf8.encode("$password$salt");
- * Digest digest = sha256.convert(bytes);
- * for (int i = 0; i < 100000; i++) { ... }
+ * Replicates Dart's key derivation loop
  */
 export async function deriveKeyWorker(password, salt) {
   const initialInput = enc.encode(`${password}${salt}`);
@@ -31,9 +28,7 @@ export async function deriveKeyWorker(password, salt) {
 }
 
 /**
- * Decrypts the Master Key from the "Locked Box" string stored in Firestore.
- * LockedBox format: "IV_B64:CIPHERTEXT_B64"
- * Uses AES-CBC (as per Dart 'AESMode.cbc')
+ * Decrypts the Master Key from the "Locked Box"
  */
 export async function unlockMasterKey(password, uid, lockedBox) {
   try {
@@ -60,9 +55,7 @@ export async function unlockMasterKey(password, uid, lockedBox) {
       cipherText,
     );
 
-    // The result is the Base64 string of the master key (stored inside the box)
-    const masterKeyB64 = dec.decode(decryptedMasterKeyBytes);
-    return masterKeyB64;
+    return dec.decode(decryptedMasterKeyBytes);
   } catch (e) {
     console.error("Unlock failed", e);
     return null;
@@ -70,7 +63,7 @@ export async function unlockMasterKey(password, uid, lockedBox) {
 }
 
 /**
- * Creates a new Master Key and locks it into a box.
+ * Creates a new Master Key and locks it
  */
 export async function generateNewMasterKey(password, uid) {
   // 1. Generate random Master Key (32 bytes)
@@ -102,9 +95,87 @@ export async function generateNewMasterKey(password, uid) {
 }
 
 /**
+ * ------------------------------------------------------------------
+ * MISSING FUNCTION ADDED BELOW
+ * ------------------------------------------------------------------
+ * Encrypts a specific Diary Entry (AES-GCM)
+ */
+export async function envelopeEncrypt(data, masterKeyB64) {
+  if (!masterKeyB64) throw new Error("Locked");
+
+  // 1. Prepare Master Key
+  const masterKeyBytes = b64ToBuff(masterKeyB64);
+  const masterKey = await crypto.subtle.importKey(
+    "raw",
+    masterKeyBytes,
+    "AES-GCM",
+    false,
+    ["encrypt"],
+  );
+
+  // 2. Generate Entry Key (32 bytes)
+  const entryKeyBytes = crypto.getRandomValues(new Uint8Array(32));
+  const entryKeyB64 = buffToB64(entryKeyBytes);
+  const entryKey = await crypto.subtle.importKey(
+    "raw",
+    entryKeyBytes,
+    "AES-GCM",
+    false,
+    ["encrypt"],
+  );
+
+  // 3. Encrypt Entry Key with Master Key
+  const ivEntryKey = crypto.getRandomValues(new Uint8Array(12)); // GCM IV is 12 bytes
+  const encryptedEntryKeyBuf = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: ivEntryKey },
+    masterKey,
+    enc.encode(entryKeyB64),
+  );
+
+  // Helper to encrypt fields
+  const encryptField = async (text) => {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const cipher = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv: iv },
+      entryKey,
+      enc.encode(text || ""),
+    );
+    return {
+      cipher: buffToB64(cipher),
+      iv: buffToB64(iv),
+    };
+  };
+
+  // 4. Encrypt Fields
+  const encTitle = await encryptField(data.title);
+  const encContent = await encryptField(data.content);
+  const encDate = await encryptField(data.date.toISOString());
+
+  const metadata = JSON.stringify({
+    mood: data.mood,
+    tags: data.tags || [],
+    isFavorite: data.isFavorite,
+    fontFamily: data.fontFamily || "plusJakartaSans",
+  });
+  const encMeta = await encryptField(metadata);
+
+  // 5. Construct Result Object
+  return {
+    encryptedEntryKey: buffToB64(encryptedEntryKeyBuf),
+    ivEntryKey: buffToB64(ivEntryKey),
+    cipherTitle: encTitle.cipher,
+    ivTitle: encTitle.iv,
+    cipherContent: encContent.cipher,
+    ivContent: encContent.iv,
+    cipherDate: encDate.cipher,
+    ivDate: encDate.iv,
+    cipherMetadata: encMeta.cipher,
+    ivMetadata: encMeta.iv,
+  };
+}
+
+/**
  * Decrypts a specific Diary Entry.
- * Replicates `envelopeDecrypt` in Dart.
- * Uses AES-GCM.
  */
 export async function envelopeDecrypt(data, masterKeyB64) {
   try {
