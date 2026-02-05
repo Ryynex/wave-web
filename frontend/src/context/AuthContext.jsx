@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth, googleProvider } from "../config/firebase";
 import {
-  signInWithRedirect,
+  signInWithPopup, // <--- CHANGE THIS IMPORT
   signOut,
   onAuthStateChanged,
-  getRedirectResult,
 } from "firebase/auth";
 
 const AuthContext = createContext();
@@ -15,26 +14,15 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Handle the return from Google Redirect
-  useEffect(() => {
-    const handleRedirect = async () => {
-      try {
-        await getRedirectResult(auth);
-        // We don't need to do anything manually here;
-        // onAuthStateChanged below will pick up the user automatically.
-      } catch (error) {
-        console.error("Redirect Login Error:", error);
-      }
-    };
-    handleRedirect();
-  }, []);
+  // 1. REMOVED: getRedirectResult useEffect is no longer needed
 
-  // 2. Login Trigger (Redirects page immediately)
+  // 2. Login Trigger (Changed to Popup)
   const loginWithGoogle = async () => {
     try {
-      await signInWithRedirect(auth, googleProvider);
+      // Using Popup avoids the "redirect loop" caused by browser storage blocking
+      await signInWithPopup(auth, googleProvider);
     } catch (error) {
-      console.error("Login Trigger Failed", error);
+      console.error("Login Failed", error);
     }
   };
 
