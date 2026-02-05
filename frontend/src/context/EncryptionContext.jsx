@@ -18,23 +18,24 @@ export const EncryptionProvider = ({ children }) => {
   useEffect(() => {
     if (!currentUser) {
       setLoadingBox(false);
+      setMasterKey(null);
       return;
     }
 
     const initEncryption = async () => {
-      // A. Check for persisted key in Session Storage (Fixes Refresh Issue)
+      // A. Restore Key from Session (Fixes "Asking on every refresh")
       const savedKey = sessionStorage.getItem(`wave_key_${currentUser.uid}`);
       if (savedKey) {
         setMasterKey(savedKey);
       }
 
-      // B. Fetch LockedBox from Firestore
+      // B. Fetch the Vault status
       try {
         const userDoc = await getDoc(doc(db, "users", currentUser.uid));
         if (userDoc.exists() && userDoc.data().lockedBox) {
           setLockedBox(userDoc.data().lockedBox);
         } else {
-          setLockedBox(null);
+          setLockedBox(null); // Triggers "Create Vault" mode
         }
       } catch (e) {
         console.error("Error fetching locked box:", e);
@@ -58,7 +59,6 @@ export const EncryptionProvider = ({ children }) => {
 
     if (key) {
       setMasterKey(key);
-      // Save to Session Storage
       sessionStorage.setItem(`wave_key_${currentUser.uid}`, key);
       return true;
     }
@@ -88,7 +88,6 @@ export const EncryptionProvider = ({ children }) => {
     sessionStorage.setItem(`wave_key_${currentUser.uid}`, result.masterKeyB64);
   };
 
-  // 4. Lock / Logout
   const lockVault = () => {
     setMasterKey(null);
     if (currentUser) {

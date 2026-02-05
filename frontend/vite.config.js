@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       port: parseInt(env.VITE_PORT) || 3000,
-      // Headers removed - Redirect flow doesn't need them
+      // Headers removed to use standard browser security
     },
   };
 });
