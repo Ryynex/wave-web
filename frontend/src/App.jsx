@@ -11,7 +11,10 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ReadEntry from "./pages/ReadEntry";
 import EditEntry from "./pages/EditEntry";
-import Profile from "./pages/Profile"; // <--- Import
+import Profile from "./pages/Profile";
+import Insights from "./pages/Insights";
+import Timeline from "./pages/Timeline"; // <--- Import
+import Explorer from "./pages/Explorer"; // <--- Import
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 function App() {
@@ -22,6 +25,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
 
+            {/* Protected Routes */}
             <Route
               path="/"
               element={
@@ -58,12 +62,39 @@ function App() {
               }
             />
 
-            {/* NEW PROFILE ROUTE */}
             <Route
               path="/profile"
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/insights"
+              element={
+                <ProtectedRoute>
+                  <Insights />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* NEW ROUTES */}
+            <Route
+              path="/timeline"
+              element={
+                <ProtectedRoute>
+                  <Timeline />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/search"
+              element={
+                <ProtectedRoute>
+                  <Explorer />
                 </ProtectedRoute>
               }
             />
