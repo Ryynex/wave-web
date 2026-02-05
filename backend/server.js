@@ -32,6 +32,12 @@ app.post("/api/auth/verify", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Only start the server if this file is run directly (e.g., 'node server.js')
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+// Always export the app (Vercel imports this to turn it into a serverless function)
+module.exports = app;

@@ -6,12 +6,13 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { EncryptionProvider } from "./context/EncryptionContext"; // Add this wrapper
+import { EncryptionProvider } from "./context/EncryptionContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import ReadEntry from "./pages/ReadEntry"; // New
-import EditEntry from "./pages/EditEntry"; // New
-import ProtectedRoute from "./components/auth/ProtectedRoute"; // Assuming you have this from before
+import ReadEntry from "./pages/ReadEntry";
+import EditEntry from "./pages/EditEntry";
+import Profile from "./pages/Profile"; // <--- Import
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 function App() {
   return (
@@ -21,7 +22,6 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
 
-            {/* Protected Routes */}
             <Route
               path="/"
               element={
@@ -58,7 +58,16 @@ function App() {
               }
             />
 
-            {/* Fallback */}
+            {/* NEW PROFILE ROUTE */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </EncryptionProvider>

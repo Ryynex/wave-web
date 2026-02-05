@@ -95,9 +95,6 @@ export async function generateNewMasterKey(password, uid) {
 }
 
 /**
- * ------------------------------------------------------------------
- * MISSING FUNCTION ADDED BELOW
- * ------------------------------------------------------------------
  * Encrypts a specific Diary Entry (AES-GCM)
  */
 export async function envelopeEncrypt(data, masterKeyB64) {
@@ -116,6 +113,8 @@ export async function envelopeEncrypt(data, masterKeyB64) {
   // 2. Generate Entry Key (32 bytes)
   const entryKeyBytes = crypto.getRandomValues(new Uint8Array(32));
   const entryKeyB64 = buffToB64(entryKeyBytes);
+  // Note: Flutter encrypts the *Base64 String* of the key, so we pass enc.encode(entryKeyB64)
+
   const entryKey = await crypto.subtle.importKey(
     "raw",
     entryKeyBytes,
@@ -192,11 +191,15 @@ export async function envelopeDecrypt(data, masterKeyB64) {
     );
 
     // 1. Decrypt the Entry Key (encrypted with Master Key)
-    const entryKeyBytes = await crypto.subtle.decrypt(
+    const entryKeyPayload = await crypto.subtle.decrypt(
       { name: "AES-GCM", iv: b64ToBuff(data.ivEntryKey) },
       masterKey,
       b64ToBuff(data.encryptedEntryKey),
     );
+
+    // FIX: Flutter encrypts the Base64 String, so we must decode it first
+    const entryKeyString = dec.decode(entryKeyPayload);
+    const entryKeyBytes = b64ToBuff(entryKeyString);
 
     const entryKey = await crypto.subtle.importKey(
       "raw",
@@ -236,14 +239,14 @@ export async function envelopeDecrypt(data, masterKeyB64) {
       tags: meta.tags || [],
       isFavorite: meta.isFavorite || false,
       fontFamily: meta.fontFamily || "plusJakartaSans",
+      isError: false,
     };
   } catch (e) {
-    console.error("Entry decryption failed", e);
-    // Return error object like Dart does
+    console.error("Entry decryption failed", e, data.id);
     return {
       id: data.id,
-      title: "Error",
-      content: "Decryption failed",
+      title: "Decryption Error",
+      content: "Could not decrypt this entry.",
       date: new Date(),
       isError: true,
     };
