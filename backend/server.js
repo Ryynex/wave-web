@@ -1,19 +1,21 @@
+require("dotenv").config(); // Load .env file
 const express = require("express");
 const cors = require("cors");
-// If you want to verify tokens server-side, you would use firebase-admin here
-// const admin = require('firebase-admin');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
+// Configure CORS dynamic origin
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: CLIENT_URL,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
 app.use(express.json());
 
 // Basic health check
@@ -30,8 +32,7 @@ app.post("/api/auth/verify", async (req, res) => {
   }
 
   try {
-    // Here you would use admin.auth().verifyIdToken(token)
-    // For now, we simulate a success
+    // In production: await admin.auth().verifyIdToken(token)
     console.log("Token received for verification");
     res.json({ status: "success", message: "User verified" });
   } catch (error) {
@@ -39,12 +40,12 @@ app.post("/api/auth/verify", async (req, res) => {
   }
 });
 
-// Only start the server if this file is run directly (e.g., 'node server.js')
+// Vercel Serverless Support
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Accepting requests from: ${CLIENT_URL}`);
   });
 }
 
-// Always export the app (Vercel imports this to turn it into a serverless function)
 module.exports = app;

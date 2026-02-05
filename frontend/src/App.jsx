@@ -7,16 +7,17 @@ import {
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { EncryptionProvider } from "./context/EncryptionContext";
+import { ToastProvider } from "./context/ToastContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ReadEntry from "./pages/ReadEntry";
 import EditEntry from "./pages/EditEntry";
 import Profile from "./pages/Profile";
 import Insights from "./pages/Insights";
-import Timeline from "./pages/Timeline"; // <--- Import
-import Explorer from "./pages/Explorer"; // <--- Import
-import { ToastProvider } from "./context/ToastContext";
+import Timeline from "./pages/Timeline";
+import Explorer from "./pages/Explorer";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import PublicRoute from "./components/auth/PublicRoute"; // <--- Import this
 
 function App() {
   return (
@@ -25,9 +26,17 @@ function App() {
         <EncryptionProvider>
           <ToastProvider>
             <Routes>
-              <Route path="/login" element={<Login />} />
+              {/* --- WRAP LOGIN IN PUBLIC ROUTE --- */}
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                }
+              />
 
-              {/* Protected Routes */}
+              {/* Protected Routes (Keep as is) */}
               <Route
                 path="/"
                 element={
@@ -82,7 +91,6 @@ function App() {
                 }
               />
 
-              {/* NEW ROUTES */}
               <Route
                 path="/timeline"
                 element={
