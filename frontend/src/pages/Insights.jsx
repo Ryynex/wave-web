@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-// Basic stopwords list to filter out common words for the cloud
 const STOP_WORDS = new Set([
   "the",
   "be",
@@ -140,13 +139,11 @@ const Insights = () => {
   useEffect(() => {
     const processData = async () => {
       if (!currentUser || !masterKey) return;
-
       try {
         const q = query(collection(db, "users", currentUser.uid, "entries"));
         const snapshot = await getDocs(q);
 
         const entries = [];
-        // 1. Decrypt all entries
         for (const doc of snapshot.docs) {
           const data = doc.data();
           if (data.deleted) continue;
@@ -157,7 +154,6 @@ const Insights = () => {
           if (!decrypted.isError) entries.push(decrypted);
         }
 
-        // 2. Calculate Stats
         let wordCountTotal = 0;
         const moodMap = {};
         const tagMap = {};
@@ -165,7 +161,6 @@ const Insights = () => {
         const uniqueDates = new Set();
 
         entries.forEach((entry) => {
-          // Words
           const text = (entry.content || "").toLowerCase();
           const words = text.match(/\b\w+\b/g) || [];
           wordCountTotal += words.length;
@@ -176,40 +171,21 @@ const Insights = () => {
             }
           });
 
-          // Moods
-          if (entry.mood) {
-            moodMap[entry.mood] = (moodMap[entry.mood] || 0) + 1;
-          }
-
-          // Tags
-          if (entry.tags) {
-            entry.tags.forEach((tag) => {
-              tagMap[tag] = (tagMap[tag] || 0) + 1;
-            });
-          }
-
-          // Dates (for streak)
-          if (entry.date) {
-            uniqueDates.add(new Date(entry.date).toDateString());
-          }
+          if (entry.mood) moodMap[entry.mood] = (moodMap[entry.mood] || 0) + 1;
+          if (entry.tags)
+            entry.tags.forEach((tag) => (tagMap[tag] = (tagMap[tag] || 0) + 1));
+          if (entry.date) uniqueDates.add(new Date(entry.date).toDateString());
         });
 
-        // 3. Calculate Streak
-        // Convert dates to timestamps, sort, and find consecutive days
         const sortedDates = Array.from(uniqueDates)
           .map((d) => new Date(d).getTime())
-          .sort((a, b) => b - a); // Descending
-
+          .sort((a, b) => b - a);
         let streak = 0;
         if (sortedDates.length > 0) {
           const today = new Date().setHours(0, 0, 0, 0);
           const yesterday = today - 86400000;
-
-          // Check if latest entry is today or yesterday to start streak
           const latest = sortedDates[0];
-          // Simple normalize function
           const norm = (t) => new Date(t).setHours(0, 0, 0, 0);
-
           if (
             norm(latest) === norm(today) ||
             norm(latest) === norm(yesterday)
@@ -219,19 +195,15 @@ const Insights = () => {
               const curr = norm(sortedDates[i]);
               const next = norm(sortedDates[i + 1]);
               const diff = (curr - next) / (1000 * 60 * 60 * 24);
-              if (Math.round(diff) === 1) {
-                streak++;
-              } else {
-                break;
-              }
+              if (Math.round(diff) === 1) streak++;
+              else break;
             }
           }
         }
 
-        // 4. Sort Word Cloud
         const sortedCloud = Object.entries(wordFreq)
           .sort(([, a], [, b]) => b - a)
-          .slice(0, 30); // Top 30 words
+          .slice(0, 30);
 
         setStats({
           totalEntries: entries.length,
@@ -247,58 +219,57 @@ const Insights = () => {
         setLoading(false);
       }
     };
-
     processData();
   }, [currentUser, masterKey]);
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="flex h-screen items-center justify-center bg-[#FAFAFA]">
+      <div className="flex h-screen items-center justify-center bg-[#FAFAFA] dark:bg-darkBg dark:text-white">
         Loading Analysis...
       </div>
     );
-  }
 
   return (
-    <div className="flex h-screen bg-[#FAFAFA] overflow-hidden">
+    <div className="flex h-screen bg-[#FAFAFA] dark:bg-darkBg overflow-hidden transition-colors duration-300">
       <Sidebar />
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-5xl mx-auto px-8 py-12">
-          {/* Header */}
           <div className="mb-12 text-center">
-            <h1 className="text-4xl font-extrabold text-slate-800 mb-2">
+            <h1 className="text-4xl font-extrabold text-slate-800 dark:text-white mb-2">
               Insights
             </h1>
-            <p className="text-slate-500">Analyze your emotional journey</p>
+            <p className="text-slate-500 dark:text-slate-400">
+              Analyze your emotional journey
+            </p>
           </div>
-          {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-0 bg-white rounded-3xl shadow-sm border border-slate-100 p-8 mb-8">
+
+          <div className="grid grid-cols-3 gap-0 bg-white dark:bg-darkCard rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-8 mb-8">
             <StatItem
               icon={BookOpen}
               value={stats.totalEntries}
               label="MEMORIES"
               color="text-[#00A9F4]"
-              bgColor="bg-[#00A9F4]/10"
+              bgColor="bg-[#00A9F4]/10 dark:bg-[#00A9F4]/20"
             />
-            <div className="w-[1px] bg-slate-100 mx-4" />
+            <div className="w-[1px] bg-slate-100 dark:bg-slate-700 mx-4" />
             <StatItem
               icon={Flame}
               value={`${stats.currentStreak}d`}
               label="STREAK"
               color="text-orange-400"
-              bgColor="bg-orange-400/10"
+              bgColor="bg-orange-400/10 dark:bg-orange-400/20"
             />
-            <div className="w-[1px] bg-slate-100 mx-4" />
+            <div className="w-[1px] bg-slate-100 dark:bg-slate-700 mx-4" />
             <StatItem
               icon={AlignLeft}
               value={formatCompactNumber(stats.totalWords)}
               label="WORDS"
               color="text-purple-400"
-              bgColor="bg-purple-400/10"
+              bgColor="bg-purple-400/10 dark:bg-purple-400/20"
             />
           </div>
-          {/* Breakdown Row */}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <DistributionCard
               title="MOOD SPECTRUM"
@@ -314,8 +285,8 @@ const Insights = () => {
               colorClass="bg-[#00A9F4]"
             />
           </div>
-          {/* Word Cloud */}
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
+
+          <div className="bg-white dark:bg-darkCard rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-8">
             <div className="flex items-center gap-2 mb-6">
               <BrainCircuit size={16} className="text-slate-400" />
               <span className="text-xs font-black text-slate-400 tracking-widest uppercase">
@@ -332,14 +303,14 @@ const Insights = () => {
                 {stats.wordCloud.map(([word, count], idx) => {
                   const max = stats.wordCloud[0][1];
                   const scale = count / max;
-                  const fontSize = 14 + scale * 16; // 14px to 30px
+                  const fontSize = 14 + scale * 16;
                   const opacity = 0.5 + scale * 0.5;
 
                   return (
                     <span
                       key={word}
                       style={{ fontSize: `${fontSize}px`, opacity }}
-                      className="px-4 py-2 bg-blue-50/50 rounded-2xl text-slate-700 font-bold border border-blue-100/50 transition-all hover:scale-110 cursor-default"
+                      className="px-4 py-2 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl text-slate-700 dark:text-blue-100 font-bold border border-blue-100/50 dark:border-blue-800/30 transition-all hover:scale-110 cursor-default"
                     >
                       {word}
                     </span>
@@ -348,22 +319,22 @@ const Insights = () => {
               </div>
             )}
           </div>
-          <div className="h-20" /> {/* Bottom Spacer */}
+          <div className="h-20" />
         </div>
       </div>
     </div>
   );
 };
 
-// --- Sub Components ---
-
 const StatItem = ({ icon: Icon, value, label, color, bgColor }) => (
   <div className="flex flex-col items-center flex-1">
     <div className={`p-3 rounded-full ${bgColor} mb-4`}>
       <Icon size={24} className={color} />
     </div>
-    <span className="text-3xl font-black text-slate-800 mb-1">{value}</span>
-    <span className="text-[11px] font-bold text-slate-400 tracking-widest">
+    <span className="text-3xl font-black text-slate-800 dark:text-white mb-1">
+      {value}
+    </span>
+    <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-widest">
       {label}
     </span>
   </div>
@@ -382,7 +353,7 @@ const DistributionCard = ({
   const total = Object.values(data).reduce((a, b) => a + b, 0) || 1;
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 h-full">
+    <div className="bg-white dark:bg-darkCard rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-8 h-full">
       <div className="flex items-center gap-2 mb-6">
         <Icon size={16} className="text-slate-400" />
         <span className="text-xs font-black text-slate-400 tracking-widest uppercase">
@@ -400,11 +371,11 @@ const DistributionCard = ({
             const percent = Math.round((count / total) * 100);
             return (
               <div key={label}>
-                <div className="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                <div className="flex justify-between text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   <span>{isTag ? `#${label}` : label}</span>
                   <span className="text-slate-400">{percent}%</span>
                 </div>
-                <div className="h-2 bg-slate-50 rounded-full overflow-hidden">
+                <div className="h-2 bg-slate-50 dark:bg-slate-700 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${percent}%` }}
@@ -421,7 +392,6 @@ const DistributionCard = ({
   );
 };
 
-// Helper for large numbers (1.2k, etc)
 const formatCompactNumber = (number) => {
   return Intl.NumberFormat("en-US", {
     notation: "compact",

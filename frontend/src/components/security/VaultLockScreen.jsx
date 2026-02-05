@@ -1,7 +1,6 @@
-/* src/components/security/VaultLockScreen.jsx */
 import React, { useState } from "react";
 import { useEncryption } from "../../context/EncryptionContext";
-import { Lock, UserCheck, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
 const VaultLockScreen = () => {
@@ -13,14 +12,13 @@ const VaultLockScreen = () => {
   const [error, setError] = useState("");
   const [showPass, setShowPass] = useState(false);
 
-  // Strength calculation for Create Mode
   const calculateStrength = (pass) => {
     let strength = 0;
     if (pass.length >= 6) strength += 1;
     if (pass.length >= 10) strength += 1;
     if (/[0-9]/.test(pass)) strength += 1;
     if (/[!@#$%^&*]/.test(pass)) strength += 1;
-    return strength; // 0 to 4
+    return strength;
   };
 
   const handleSubmit = async (e) => {
@@ -28,11 +26,9 @@ const VaultLockScreen = () => {
     setError("");
     setIsSubmitting(true);
 
-    // Give UI a moment to breathe (simulate native feel)
     await new Promise((r) => setTimeout(r, 500));
 
     if (!hasVault) {
-      // Create Mode
       if (password !== confirm) {
         setError("Passwords do not match");
         setIsSubmitting(false);
@@ -45,7 +41,6 @@ const VaultLockScreen = () => {
       }
       await createVault(password);
     } else {
-      // Unlock Mode
       const success = await unlockVault(password);
       if (!success) {
         setError("Invalid Master Password");
@@ -57,13 +52,13 @@ const VaultLockScreen = () => {
   const isCreateMode = !hasVault;
 
   return (
-    <div className="flex h-screen w-full bg-white overflow-hidden absolute top-0 left-0 z-50">
-      {/* LEFT SIDE: Branding & Wave */}
+    // Hardcoded Light Mode Backgrounds and Text Colors
+    <div className="flex h-screen w-full bg-white text-slate-900 overflow-hidden absolute top-0 left-0 z-50">
+      {/* LEFT SIDE: Branding */}
       <div className="hidden lg:flex w-7/12 relative flex-col items-center justify-center bg-gradient-to-br from-[#F0F9FF] to-white overflow-hidden">
-        {/* Simple CSS Wave Animation */}
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <svg
-            className="absolute bottom-0 w-[200%] animate-wave-slow text-primary fill-current"
+            className="absolute bottom-0 w-[200%] animate-wave-slow text-[#00A9F4] fill-current"
             viewBox="0 0 1440 320"
             preserveAspectRatio="none"
           >
@@ -78,7 +73,7 @@ const VaultLockScreen = () => {
           className="relative z-10 flex flex-col items-center"
         >
           <div className="p-8 bg-white rounded-full shadow-2xl shadow-blue-100 mb-8">
-            <Lock className="w-16 h-16 text-primary" />
+            <Lock className="w-16 h-16 text-[#00A9F4]" />
           </div>
           <h1 className="text-5xl font-black text-slate-800 tracking-tight">
             {isCreateMode ? "Setup Vault" : "Vault Locked"}
@@ -110,12 +105,12 @@ const VaultLockScreen = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter Master Password"
-                  className="w-full h-14 pl-4 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-medium text-slate-700 placeholder:text-slate-400"
+                  className="w-full h-14 pl-4 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#00A9F4] focus:ring-1 focus:ring-[#00A9F4] transition-all font-medium text-slate-700 placeholder:text-slate-400"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-4 text-slate-400 hover:text-primary transition-colors"
+                  className="absolute right-4 top-4 text-slate-400 hover:text-[#00A9F4] transition-colors"
                 >
                   {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -153,7 +148,7 @@ const VaultLockScreen = () => {
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     placeholder="Confirm Master Password"
-                    className="w-full h-14 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-medium text-slate-700"
+                    className="w-full h-14 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#00A9F4] focus:ring-1 focus:ring-[#00A9F4] transition-all font-medium text-slate-700"
                   />
                 </motion.div>
               )}
@@ -180,7 +175,7 @@ const VaultLockScreen = () => {
             </form>
 
             <div className="mt-10 p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <ShieldCheck className="w-5 h-5 text-[#00A9F4] shrink-0 mt-0.5" />
               <p className="text-xs text-slate-500 leading-relaxed font-medium">
                 AES-256 GCM authenticated encryption ensures data integrity. We
                 cannot recover your password if lost.

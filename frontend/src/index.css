@@ -1,28 +1,31 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono&family=Dancing+Script:wght@700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: "Plus Jakarta Sans", sans-serif;
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  body {
+    /* Base styles (Light Mode) */
+    @apply bg-[#FAFAFA] text-slate-900 transition-colors duration-300;
+  }
+
+  /* Dark Mode Styles - Applied when 'dark' class is on HTML tag */
+  .dark body {
+    @apply bg-darkBg text-white;
+  }
 }
 
-/* Custom utility for animation delays */
-.delay-100 {
-  animation-delay: 100ms;
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
 }
-.delay-200 {
-  animation-delay: 200ms;
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
 }
-.delay-300 {
-  animation-delay: 300ms;
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
 }
-.delay-400 {
-  animation-delay: 400ms;
-}
-.delay-500 {
-  animation-delay: 500ms;
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-600;
 }

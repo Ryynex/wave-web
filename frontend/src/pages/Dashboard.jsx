@@ -1,22 +1,35 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEncryption } from "../context/EncryptionContext";
 import { collection, query, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
 import VaultLockScreen from "../components/security/VaultLockScreen";
 import DiaryCard from "../components/dashboard/DiaryCard";
-import Sidebar from "../components/layout/Sidebar"; // <--- Import Sidebar
+import Sidebar from "../components/layout/Sidebar";
 import * as CryptoUtils from "../utils/cryptoUtils";
 import { RefreshCw, Plus, Star, PlusCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
   const { isLocked, isLoading: isAuthLoading, masterKey } = useEncryption();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
 
-  const [entries, setEntries] = useState([]);
+  // State
+  const [allEntries, setAllEntries] = useState([]); // Source of truth
   const [loadingEntries, setLoadingEntries] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [refreshing, setRefreshing] = useState(false);
@@ -45,9 +58,11 @@ const Dashboard = () => {
 
       const results = await Promise.all(decryptedPromises);
       const validEntries = results.filter((e) => e !== null);
+
+      // Sort by date descending
       validEntries.sort((a, b) => b.date - a.date);
 
-      setEntries(validEntries);
+      setAllEntries(validEntries);
     } catch (error) {
       console.error("Error fetching entries:", error);
     } finally {
@@ -67,9 +82,17 @@ const Dashboard = () => {
     fetchEntries();
   };
 
+  // Filter Logic (Derived State)
+  const filteredEntries = useMemo(() => {
+    if (activeTab === "fav") {
+      return allEntries.filter((e) => e.isFavorite);
+    }
+    return allEntries;
+  }, [activeTab, allEntries]);
+
   if (isAuthLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-white">
+      <div className="h-screen w-full flex items-center justify-center dark:bg-darkBg dark:text-white">
         Loading...
       </div>
     );
@@ -87,46 +110,44 @@ const Dashboard = () => {
   };
 
   const firstName = currentUser?.displayName?.split(" ")[0] || "Friend";
-  const filteredEntries =
-    activeTab === "all" ? entries : entries.filter((e) => e.isFavorite);
 
   return (
-    // WRAPPER DIV for Sidebar Layout
-    <div className="flex h-screen bg-[#FAFAFA] overflow-hidden">
-      {/* 1. Add Sidebar Here */}
+    <div className="flex h-screen bg-[#FAFAFA] dark:bg-darkBg overflow-hidden transition-colors duration-300">
       <Sidebar />
 
-      {/* 2. Main Content Area */}
       <div className="flex-1 h-full overflow-y-auto relative">
         <div className="max-w-6xl mx-auto px-6 md:px-10 pt-12 pb-20">
           {/* Header */}
           <div className="flex justify-between items-end mb-8">
             <div>
-              <p className="text-sm font-medium text-slate-500 tracking-wide uppercase mb-1">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase mb-1">
                 {getGreeting()}
               </p>
-              <h1 className="text-4xl font-extrabold text-slate-800">
+              <h1 className="text-4xl font-extrabold text-slate-800 dark:text-white">
                 {firstName}.
               </h1>
             </div>
             <button
               onClick={handleRefresh}
-              className={`p-2 rounded-full hover:bg-slate-100 transition-colors ${refreshing ? "animate-spin" : ""}`}
+              className={`p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${refreshing ? "animate-spin" : ""}`}
             >
-              <RefreshCw className="text-slate-400" size={20} />
+              <RefreshCw
+                className="text-slate-400 dark:text-slate-500"
+                size={20}
+              />
             </button>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-8 mb-8 border-b border-slate-200">
+          <div className="flex gap-8 mb-8 border-b border-slate-200 dark:border-slate-800">
             {["all", "fav"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`pb-3 text-lg font-bold transition-all relative ${
                   activeTab === tab
-                    ? "text-slate-800"
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "text-slate-800 dark:text-white"
+                    : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                 }`}
               >
                 {tab === "all" ? "All Memories" : "Favorites"}
@@ -147,29 +168,35 @@ const Dashboard = () => {
             </div>
           ) : filteredEntries.length === 0 ? (
             <div className="flex flex-col items-center justify-center pt-20 opacity-50">
-              <div className="p-8 bg-blue-50 rounded-full mb-4">
+              <div className="p-8 bg-blue-50 dark:bg-slate-800 rounded-full mb-4">
                 {activeTab === "all" ? (
                   <PlusCircle size={40} className="text-blue-400" />
                 ) : (
                   <Star size={40} className="text-amber-400" />
                 )}
               </div>
-              <p className="text-lg font-semibold text-slate-600">
+              <p className="text-lg font-semibold text-slate-600 dark:text-slate-400">
                 {activeTab === "all"
                   ? "Your story begins here."
                   : "No favorites yet."}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
               {filteredEntries.map((entry) => (
-                <DiaryCard
-                  key={entry.id}
-                  entry={entry}
-                  onClick={() => navigate(`/entry/${entry.id}`)}
-                />
+                <motion.div key={entry.id} variants={itemVariants}>
+                  <DiaryCard
+                    entry={entry}
+                    onClick={() => navigate(`/entry/${entry.id}`)}
+                  />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
 

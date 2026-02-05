@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import Insights from "./pages/Insights";
 import Timeline from "./pages/Timeline"; // <--- Import
 import Explorer from "./pages/Explorer"; // <--- Import
+import { ToastProvider } from "./context/ToastContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 function App() {
@@ -22,85 +23,87 @@ function App() {
     <Router>
       <AuthProvider>
         <EncryptionProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
+          <ToastProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
 
-            {/* Protected Routes */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected Routes */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/entry/:id"
-              element={
-                <ProtectedRoute>
-                  <ReadEntry />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/entry/:id"
+                element={
+                  <ProtectedRoute>
+                    <ReadEntry />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/edit/:id"
-              element={
-                <ProtectedRoute>
-                  <EditEntry />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <EditEntry />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/create"
-              element={
-                <ProtectedRoute>
-                  <EditEntry />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/create"
+                element={
+                  <ProtectedRoute>
+                    <EditEntry />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/insights"
-              element={
-                <ProtectedRoute>
-                  <Insights />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/insights"
+                element={
+                  <ProtectedRoute>
+                    <Insights />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* NEW ROUTES */}
-            <Route
-              path="/timeline"
-              element={
-                <ProtectedRoute>
-                  <Timeline />
-                </ProtectedRoute>
-              }
-            />
+              {/* NEW ROUTES */}
+              <Route
+                path="/timeline"
+                element={
+                  <ProtectedRoute>
+                    <Timeline />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/search"
-              element={
-                <ProtectedRoute>
-                  <Explorer />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute>
+                    <Explorer />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </ToastProvider>
         </EncryptionProvider>
       </AuthProvider>
     </Router>

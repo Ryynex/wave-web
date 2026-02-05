@@ -1,15 +1,21 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', "sans-serif"],
+        serif: ["Lora", "serif"],
+        mono: ['"JetBrains Mono"', "monospace"],
+        hand: ['"Dancing Script"', "cursive"],
       },
       colors: {
         primary: "#00A9F4",
-        darkText: "#0F172A",
-        secondaryText: "#64748B",
+        // These keys create classes like bg-darkBg, bg-darkCard
+        darkBg: "#0F172A",
+        darkCard: "#1E293B",
+        darkBorder: "#334155",
       },
       animation: {
         float: "float 3s ease-in-out infinite",
@@ -32,5 +38,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/typography")],
 };

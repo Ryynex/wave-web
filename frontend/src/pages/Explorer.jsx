@@ -18,21 +18,16 @@ const Explorer = () => {
   const [filteredEntries, setFilteredEntries] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Search State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState(null);
-
-  // Stats for tags
   const [availableTags, setAvailableTags] = useState([]);
 
-  // 1. Fetch & Decrypt All (Client-side search required for encrypted data)
   useEffect(() => {
     const fetchEntries = async () => {
       if (!currentUser || !masterKey) return;
       try {
         const q = query(collection(db, "users", currentUser.uid, "entries"));
         const snapshot = await getDocs(q);
-
         const results = [];
         const tagCounts = {};
 
@@ -43,29 +38,23 @@ const Explorer = () => {
             { id: doc.id, ...data },
             masterKey,
           );
-
           if (!decrypted.isError) {
             results.push(decrypted);
-            // Count tags
-            if (decrypted.tags) {
-              decrypted.tags.forEach((t) => {
-                tagCounts[t] = (tagCounts[t] || 0) + 1;
-              });
-            }
+            if (decrypted.tags)
+              decrypted.tags.forEach(
+                (t) => (tagCounts[t] = (tagCounts[t] || 0) + 1),
+              );
           }
         }
 
-        // Sort by date desc
         results.sort((a, b) => b.date - a.date);
-
         setAllEntries(results);
         setFilteredEntries(results);
-
-        // Convert tag counts to array
-        const tagArray = Object.entries(tagCounts)
-          .sort(([, a], [, b]) => b - a)
-          .map(([tag]) => tag);
-        setAvailableTags(tagArray);
+        setAvailableTags(
+          Object.entries(tagCounts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([tag]) => tag),
+        );
       } catch (e) {
         console.error("Search fetch error", e);
       } finally {
@@ -75,11 +64,8 @@ const Explorer = () => {
     fetchEntries();
   }, [currentUser, masterKey]);
 
-  // 2. Filter Logic
   useEffect(() => {
     let result = allEntries;
-
-    // Text Filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -88,24 +74,20 @@ const Explorer = () => {
           (e.content && e.content.toLowerCase().includes(q)),
       );
     }
-
-    // Tag Filter
     if (selectedTag) {
       result = result.filter((e) => e.tags && e.tags.includes(selectedTag));
     }
-
     setFilteredEntries(result);
   }, [searchQuery, selectedTag, allEntries]);
 
   return (
-    <div className="flex h-screen bg-[#FAFAFA] overflow-hidden">
+    <div className="flex h-screen bg-[#FAFAFA] dark:bg-darkBg overflow-hidden transition-colors duration-300">
       <Sidebar />
 
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         <div className="max-w-4xl mx-auto w-full px-6 pt-10 pb-4 flex flex-col h-full">
-          {/* Header & Search Bar */}
           <div className="mb-8">
-            <h1 className="text-4xl font-extrabold text-slate-800 mb-6">
+            <h1 className="text-4xl font-extrabold text-slate-800 dark:text-white mb-6">
               Explorer
             </h1>
 
@@ -118,12 +100,12 @@ const Explorer = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search memories, ideas, or feelings..."
-                className="block w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:ring-0 focus:border-blue-500 focus:outline-none transition-all shadow-sm font-medium text-lg"
+                className="block w-full pl-12 pr-4 py-4 bg-white dark:bg-darkCard border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none transition-all shadow-sm font-medium text-lg"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute inset-y-0 right-4 flex items-center text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <X size={20} />
                 </button>
@@ -131,7 +113,6 @@ const Explorer = () => {
             </div>
           </div>
 
-          {/* Tags / Filters */}
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <SlidersHorizontal size={14} className="text-slate-400" />
@@ -143,11 +124,7 @@ const Explorer = () => {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setSelectedTag(null)}
-                className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all border ${
-                  selectedTag === null
-                    ? "bg-slate-800 text-white border-slate-800"
-                    : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
-                }`}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all border ${selectedTag === null ? "bg-slate-800 dark:bg-white text-white dark:text-slate-900 border-slate-800 dark:border-white" : "bg-white dark:bg-darkCard text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-500"}`}
               >
                 All
               </button>
@@ -157,11 +134,7 @@ const Explorer = () => {
                   onClick={() =>
                     setSelectedTag(tag === selectedTag ? null : tag)
                   }
-                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all border ${
-                    selectedTag === tag
-                      ? "bg-blue-500 text-white border-blue-500"
-                      : "bg-white text-blue-500 border-blue-100 hover:border-blue-200"
-                  }`}
+                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all border ${selectedTag === tag ? "bg-blue-500 text-white border-blue-500" : "bg-white dark:bg-darkCard text-blue-500 dark:text-blue-400 border-blue-100 dark:border-blue-900/30 hover:border-blue-200"}`}
                 >
                   #{tag}
                 </button>
@@ -169,15 +142,14 @@ const Explorer = () => {
             </div>
           </div>
 
-          {/* Results Area */}
           <div className="flex-1 overflow-y-auto pb-20 -mx-4 px-4">
             {loading ? (
               <div className="flex justify-center pt-20">
-                <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-slate-200 dark:border-slate-700 border-t-slate-800 dark:border-t-white rounded-full animate-spin" />
               </div>
             ) : filteredEntries.length === 0 ? (
               <div className="text-center pt-20 opacity-50">
-                <p className="text-lg font-medium text-slate-500">
+                <p className="text-lg font-medium text-slate-500 dark:text-slate-400">
                   No matching entries found.
                 </p>
               </div>

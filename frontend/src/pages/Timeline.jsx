@@ -32,11 +32,10 @@ const Timeline = () => {
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [entries, setEntries] = useState([]); // All entries
-  const [selectedEntries, setSelectedEntries] = useState([]); // Entries for selected date
+  const [entries, setEntries] = useState([]);
+  const [selectedEntries, setSelectedEntries] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch All Entries (to mark dots on calendar)
   useEffect(() => {
     const fetchAll = async () => {
       if (!currentUser || !masterKey) return;
@@ -64,17 +63,14 @@ const Timeline = () => {
     fetchAll();
   }, [currentUser, masterKey]);
 
-  // 2. Filter entries when Date or Entries change
   useEffect(() => {
     const matches = entries.filter((e) =>
       isSameDay(new Date(e.date), selectedDate),
     );
-    // Sort by time descending
     matches.sort((a, b) => b.date - a.date);
     setSelectedEntries(matches);
   }, [selectedDate, entries]);
 
-  // --- Calendar Helpers ---
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const jumpToToday = () => {
@@ -90,12 +86,6 @@ const Timeline = () => {
     const endDate = endOfWeek(monthEnd);
 
     const dateFormat = "d";
-    const rows = [];
-    let days = [];
-    let day = startDate;
-    let formattedDate = "";
-
-    // Generate Days
     const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
     return (
@@ -103,7 +93,7 @@ const Timeline = () => {
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
           <div
             key={d}
-            className="text-center text-xs font-bold text-slate-400 py-2 uppercase tracking-wider"
+            className="text-center text-xs font-bold text-slate-400 dark:text-slate-500 py-2 uppercase tracking-wider"
           >
             {d}
           </div>
@@ -126,14 +116,12 @@ const Timeline = () => {
                     isSelected
                       ? "bg-blue-500 text-white shadow-md shadow-blue-500/30"
                       : isCurrentMonth
-                        ? "text-slate-700 hover:bg-slate-100"
-                        : "text-slate-300"
+                        ? "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                        : "text-slate-300 dark:text-slate-600"
                   }
                 `}
               >
                 <span>{format(date, dateFormat)}</span>
-
-                {/* Dot Indicator for entries */}
                 {hasEntry && !isSelected && (
                   <div className="absolute bottom-1.5 w-1 h-1 bg-blue-400 rounded-full" />
                 )}
@@ -147,52 +135,49 @@ const Timeline = () => {
 
   if (loading)
     return (
-      <div className="h-screen flex items-center justify-center bg-[#FAFAFA]">
+      <div className="h-screen flex items-center justify-center bg-[#FAFAFA] dark:bg-darkBg dark:text-white">
         Loading...
       </div>
     );
 
   return (
-    <div className="flex h-screen bg-[#FAFAFA] overflow-hidden">
+    <div className="flex h-screen bg-[#FAFAFA] dark:bg-darkBg overflow-hidden transition-colors duration-300">
       <Sidebar />
 
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         <div className="max-w-6xl w-full mx-auto px-6 pt-8 pb-4 h-full flex flex-col md:flex-row gap-8">
           {/* LEFT: Calendar Widget */}
           <div className="md:w-[400px] shrink-0 flex flex-col">
-            <h1 className="text-3xl font-extrabold text-slate-800 mb-6">
+            <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white mb-6">
               Timeline
             </h1>
 
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-              {/* Header */}
+            <div className="bg-white dark:bg-darkCard rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-slate-800 ml-2">
+                <h2 className="text-lg font-bold text-slate-800 dark:text-white ml-2">
                   {format(currentMonth, "MMMM yyyy")}
                 </h2>
                 <div className="flex gap-1">
                   <button
                     onClick={prevMonth}
-                    className="p-2 hover:bg-slate-50 rounded-full text-slate-500"
+                    className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400"
                   >
                     <ChevronLeft size={20} />
                   </button>
                   <button
                     onClick={jumpToToday}
-                    className="p-2 hover:bg-slate-50 rounded-full text-blue-500 text-xs font-bold uppercase tracking-wide"
+                    className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-blue-500 text-xs font-bold uppercase tracking-wide"
                   >
                     Today
                   </button>
                   <button
                     onClick={nextMonth}
-                    className="p-2 hover:bg-slate-50 rounded-full text-slate-500"
+                    className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400"
                   >
                     <ChevronRight size={20} />
                   </button>
                 </div>
               </div>
-
-              {/* Grid */}
               {renderCalendar()}
             </div>
           </div>
@@ -200,16 +185,19 @@ const Timeline = () => {
           {/* RIGHT: Entry List */}
           <div className="flex-1 flex flex-col min-h-0">
             <div className="mb-4 pt-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                 {format(selectedDate, "EEEE, MMMM do")}
               </span>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 pb-20">
               {selectedEntries.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center opacity-50 border-2 border-dashed border-slate-200 rounded-3xl min-h-[300px]">
-                  <CalendarIcon size={48} className="text-slate-300 mb-4" />
-                  <p className="text-slate-500 font-medium">
+                <div className="h-full flex flex-col items-center justify-center opacity-50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl min-h-[300px]">
+                  <CalendarIcon
+                    size={48}
+                    className="text-slate-300 dark:text-slate-600 mb-4"
+                  />
+                  <p className="text-slate-500 dark:text-slate-400 font-medium">
                     No memories on this day
                   </p>
                   <button
