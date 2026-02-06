@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Sidebar from "../components/layout/Sidebar";
 import { useAuth } from "../context/AuthContext";
 import { useEncryption } from "../context/EncryptionContext";
@@ -22,8 +22,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
+  Layers,
+  Activity,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Timeline = () => {
   const { currentUser } = useAuth();
@@ -33,7 +36,6 @@ const Timeline = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [entries, setEntries] = useState([]);
-  const [selectedEntries, setSelectedEntries] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,7 +44,6 @@ const Timeline = () => {
       try {
         const q = query(collection(db, "users", currentUser.uid, "entries"));
         const snapshot = await getDocs(q);
-
         const decryptedPromises = snapshot.docs.map(async (doc) => {
           const data = doc.data();
           if (data.deleted) return null;
@@ -51,11 +52,10 @@ const Timeline = () => {
             masterKey,
           );
         });
-
         const results = await Promise.all(decryptedPromises);
         setEntries(results.filter((e) => e !== null && !e.isError));
       } catch (e) {
-        console.error("Error fetching timeline", e);
+        console.error("TIMELINE_CORE_ERROR", e);
       } finally {
         setLoading(false);
       }
@@ -63,42 +63,29 @@ const Timeline = () => {
     fetchAll();
   }, [currentUser, masterKey]);
 
-  useEffect(() => {
-    const matches = entries.filter((e) =>
-      isSameDay(new Date(e.date), selectedDate),
-    );
-    matches.sort((a, b) => b.date - a.date);
-    setSelectedEntries(matches);
+  const selectedEntries = useMemo(() => {
+    return entries
+      .filter((e) => isSameDay(new Date(e.date), selectedDate))
+      .sort((a, b) => b.date - a.date);
   }, [selectedDate, entries]);
-
-  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
-  const jumpToToday = () => {
-    const today = new Date();
-    setCurrentMonth(today);
-    setSelectedDate(today);
-  };
 
   const renderCalendar = () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
     const startDate = startOfWeek(monthStart);
     const endDate = endOfWeek(monthEnd);
-
-    const dateFormat = "d";
     const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
     return (
-      <div className="grid grid-cols-7 gap-2 mb-4">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+      <div className="grid grid-cols-7 gap-1">
+        {["S", "M", "T", "W", "T", "F", "S"].map((d) => (
           <div
             key={d}
-            className="text-center text-xs font-bold text-slate-400 dark:text-slate-500 py-2 uppercase tracking-wider"
+            className="text-center text-[10px] font-black text-slate-500 py-3 uppercase tracking-widest"
           >
             {d}
           </div>
         ))}
-
         {calendarDays.map((date, i) => {
           const isSelected = isSameDay(date, selectedDate);
           const isCurrentMonth = isSameMonth(date, monthStart);
@@ -107,23 +94,25 @@ const Timeline = () => {
           );
 
           return (
-            <div key={i} className="flex flex-col items-center">
+            <div
+              key={i}
+              className="aspect-square flex items-center justify-center p-1"
+            >
               <button
                 onClick={() => setSelectedDate(date)}
-                className={`
-                  w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all relative
+                className={`w-full h-full rounded-xl flex flex-col items-center justify-center transition-all relative group
                   ${
                     isSelected
-                      ? "bg-blue-500 text-white shadow-md shadow-blue-500/30"
+                      ? "bg-primary text-slate-950 shadow-lg shadow-primary/20 scale-105"
                       : isCurrentMonth
-                        ? "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-                        : "text-slate-300 dark:text-slate-600"
+                        ? "hover:bg-white/5 text-slate-300"
+                        : "text-slate-700 opacity-40"
                   }
                 `}
               >
-                <span>{format(date, dateFormat)}</span>
+                <span className="text-xs font-bold">{format(date, "d")}</span>
                 {hasEntry && !isSelected && (
-                  <div className="absolute bottom-1.5 w-1 h-1 bg-blue-400 rounded-full" />
+                  <div className="absolute bottom-1.5 w-1 h-1 bg-primary rounded-full shadow-[0_0_8px_#00A9F4]" />
                 )}
               </button>
             </div>
@@ -133,95 +122,139 @@ const Timeline = () => {
     );
   };
 
-  if (loading)
-    return (
-      <div className="h-screen flex items-center justify-center bg-[#FAFAFA] dark:bg-darkBg dark:text-white">
-        Loading...
-      </div>
-    );
+  if (loading) return null;
 
   return (
-    <div className="flex h-screen bg-[#FAFAFA] dark:bg-darkBg overflow-hidden transition-colors duration-300">
+    <div className="flex h-screen bg-[#020617] text-slate-200 overflow-hidden font-sans">
       <Sidebar />
+      <main className="flex-1 flex flex-col relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <div className="max-w-6xl w-full mx-auto px-6 pt-8 pb-4 h-full flex flex-col md:flex-row gap-8">
-          {/* LEFT: Calendar Widget */}
-          <div className="md:w-[400px] shrink-0 flex flex-col">
-            <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white mb-6">
-              Timeline
-            </h1>
+        <div className="max-w-[1400px] w-full mx-auto px-8 lg:px-12 py-12 h-full flex flex-col md:flex-row gap-12 relative z-10">
+          <aside className="md:w-[380px] shrink-0 flex flex-col">
+            <header className="mb-10">
+              <div className="flex items-center gap-3 mb-2">
+                <Layers size={14} className="text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-[4px] text-primary">
+                  Temporal Index
+                </span>
+              </div>
+              <h1 className="text-4xl font-black text-white tracking-tight">
+                Timeline
+              </h1>
+            </header>
 
-            <div className="bg-white dark:bg-darkCard rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-slate-800 dark:text-white ml-2">
-                  {format(currentMonth, "MMMM yyyy")}
-                </h2>
-                <div className="flex gap-1">
+            <div className="bg-white/[0.03] backdrop-blur-3xl rounded-[32px] p-6 border border-white/5 shadow-2xl">
+              <div className="flex items-center justify-between mb-8 px-2">
+                <div>
+                  <h2 className="text-lg font-black text-white tracking-tight">
+                    {format(currentMonth, "MMMM")}
+                  </h2>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    {format(currentMonth, "yyyy")}
+                  </p>
+                </div>
+                <div className="flex gap-2">
                   <button
-                    onClick={prevMonth}
-                    className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400"
+                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                    className="p-2 hover:bg-white/5 rounded-xl border border-white/5 text-slate-400 transition-colors"
                   >
-                    <ChevronLeft size={20} />
+                    <ChevronLeft size={18} />
                   </button>
                   <button
-                    onClick={jumpToToday}
-                    className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-blue-500 text-xs font-bold uppercase tracking-wide"
+                    onClick={() => {
+                      const d = new Date();
+                      setCurrentMonth(d);
+                      setSelectedDate(d);
+                    }}
+                    className="px-3 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 rounded-xl transition-colors"
                   >
                     Today
                   </button>
                   <button
-                    onClick={nextMonth}
-                    className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400"
+                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                    className="p-2 hover:bg-white/5 rounded-xl border border-white/5 text-slate-400 transition-colors"
                   >
-                    <ChevronRight size={20} />
+                    <ChevronRight size={18} />
                   </button>
                 </div>
               </div>
               {renderCalendar()}
             </div>
-          </div>
 
-          {/* RIGHT: Entry List */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="mb-4 pt-2">
-              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                {format(selectedDate, "EEEE, MMMM do")}
+            <div className="mt-6 p-6 rounded-[32px] bg-gradient-to-br from-primary/10 to-transparent border border-primary/10">
+              <div className="flex items-center gap-3 mb-2">
+                <Activity size={16} className="text-primary" />
+                <span className="text-xs font-black text-white uppercase tracking-wider">
+                  Activity Density
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                System detected{" "}
+                <span className="text-primary font-bold">{entries.length}</span>{" "}
+                decrypted nodes across the temporal continuum.
+              </p>
+            </div>
+          </aside>
+
+          <section className="flex-1 flex flex-col min-h-0">
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
+              <div className="flex items-center gap-4">
+                <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_#00A9F4]" />
+                <h3 className="text-sm font-black text-white uppercase tracking-[3px]">
+                  {format(selectedDate, "EEEE, MMMM do")}
+                </h3>
+              </div>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                {selectedEntries.length} Signals Found
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 pb-20">
-              {selectedEntries.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center opacity-50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl min-h-[300px]">
-                  <CalendarIcon
-                    size={48}
-                    className="text-slate-300 dark:text-slate-600 mb-4"
-                  />
-                  <p className="text-slate-500 dark:text-slate-400 font-medium">
-                    No memories on this day
-                  </p>
-                  <button
-                    onClick={() => navigate("/create")}
-                    className="mt-4 text-blue-500 font-bold hover:underline"
+            <div className="flex-1 overflow-y-auto pr-4 pb-20 custom-scrollbar">
+              <AnimatePresence mode="popLayout">
+                {selectedEntries.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="h-full flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[40px] p-12 text-center"
                   >
-                    Write a new entry
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {selectedEntries.map((entry) => (
-                    <DiaryCard
-                      key={entry.id}
-                      entry={entry}
-                      onClick={() => navigate(`/entry/${entry.id}`)}
-                    />
-                  ))}
-                </div>
-              )}
+                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/5">
+                      <CalendarIcon size={32} className="text-slate-600" />
+                    </div>
+                    <h4 className="text-xl font-bold text-white mb-2">
+                      No Records Detected
+                    </h4>
+                    <p className="text-sm text-slate-500 max-w-[240px] mb-8">
+                      This temporal coordinate contains zero encrypted data
+                      nodes.
+                    </p>
+                    <button
+                      onClick={() => navigate("/create")}
+                      className="px-6 py-3 bg-white text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform"
+                    >
+                      Initialize Entry
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div layout className="grid grid-cols-1 gap-6">
+                    {selectedEntries.map((entry) => (
+                      <motion.div
+                        key={entry.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        layout
+                      >
+                        <DiaryCard entry={entry} />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

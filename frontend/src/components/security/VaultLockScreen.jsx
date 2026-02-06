@@ -1,186 +1,276 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useEncryption } from "../../context/EncryptionContext";
-import { Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
-import { motion } from "framer-motion";
+import {
+  ArrowRight,
+  Lock,
+  KeyRound,
+  Loader2,
+  AlertTriangle,
+  Shield,
+  Fingerprint,
+} from "lucide-react";
+import iconSvg from "../../assets/icon.svg";
+import {
+  motion,
+  AnimatePresence,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 
 const VaultLockScreen = () => {
-  const { hasVault, unlockVault, createVault } = useEncryption();
-
+  const { unlockVault, hasVault, createVault, isLoading } = useEncryption();
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [showPass, setShowPass] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  const calculateStrength = (pass) => {
-    let strength = 0;
-    if (pass.length >= 6) strength += 1;
-    if (pass.length >= 10) strength += 1;
-    if (/[0-9]/.test(pass)) strength += 1;
-    if (/[!@#$%^&*]/.test(pass)) strength += 1;
-    return strength;
-  };
+  const x = useSpring(0, { stiffness: 100, damping: 30 });
+  const y = useSpring(0, { stiffness: 100, damping: 30 });
+
+  const handleMove = useCallback(
+    (e) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+      const moveX = (e.clientX - window.innerWidth / 4) / 20;
+      const moveY = (e.clientY - window.innerHeight / 2) / 20;
+      x.set(moveX);
+      y.set(moveY);
+    },
+    [x, y],
+  );
+
+  useEffect(() => {
+    window.addEventListener("mousemove", handleMove);
+    return () => window.removeEventListener("mousemove", handleMove);
+  }, [handleMove]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    if (!password.trim() || isSubmitting) return;
     setIsSubmitting(true);
-
-    await new Promise((r) => setTimeout(r, 500));
-
-    if (!hasVault) {
-      if (password !== confirm) {
-        setError("Passwords do not match");
-        setIsSubmitting(false);
-        return;
-      }
-      if (password.length < 6) {
-        setError("Password is too short");
-        setIsSubmitting(false);
-        return;
-      }
-      await createVault(password);
-    } else {
+    setError("");
+    await new Promise((r) => setTimeout(r, 1200));
+    if (hasVault) {
       const success = await unlockVault(password);
-      if (!success) {
-        setError("Invalid Master Password");
-      }
+      if (!success) setError("INVALID_KEY_SIGNATURE");
+    } else {
+      await createVault(password);
     }
     setIsSubmitting(false);
   };
 
-  const isCreateMode = !hasVault;
+  if (isLoading) return null;
 
   return (
-    // Hardcoded Light Mode Backgrounds and Text Colors
-    <div className="flex h-screen w-full bg-white text-slate-900 overflow-hidden absolute top-0 left-0 z-50">
-      {/* LEFT SIDE: Branding */}
-      <div className="hidden lg:flex w-7/12 relative flex-col items-center justify-center bg-gradient-to-br from-[#F0F9FF] to-white overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <svg
-            className="absolute bottom-0 w-[200%] animate-wave-slow text-[#00A9F4] fill-current"
-            viewBox="0 0 1440 320"
-            preserveAspectRatio="none"
-          >
-            <path d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-          </svg>
+    <div className="flex h-screen w-full bg-[#020617] font-sans overflow-hidden selection:bg-primary/30">
+      <div className="hidden lg:flex lg:w-1/2 relative flex-col items-center justify-center overflow-hidden border-r border-white/5 bg-[#01040a]">
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:40px_40px]" />
+          <motion.div
+            style={{ x, y }}
+            className="absolute inset-0 bg-[radial-gradient(circle_500px_at_50%_50%,rgba(0,169,244,0.08),transparent)]"
+          />
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-10 flex flex-col items-center"
-        >
-          <div className="p-8 bg-white rounded-full shadow-2xl shadow-blue-100 mb-8">
-            <Lock className="w-16 h-16 text-[#00A9F4]" />
-          </div>
-          <h1 className="text-5xl font-black text-slate-800 tracking-tight">
-            {isCreateMode ? "Setup Vault" : "Vault Locked"}
-          </h1>
-          <p className="mt-4 text-slate-500 max-w-md text-center text-lg leading-relaxed">
-            {isCreateMode
-              ? "Create a master key to protect your digital sanctuary. This password cannot be recovered."
-              : "Your diary entries are encrypted with your master key. Enter it to unlock your sanctuary."}
-          </p>
-        </motion.div>
+        <div className="absolute inset-0 pointer-events-none">
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={i}
+              style={{
+                x: useTransform(x, (v) => v * (i + 1) * 0.3),
+                y: useTransform(y, (v) => v * (i + 1) * 0.3),
+              }}
+              animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
+              transition={{
+                duration: 60 + i * 20,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.03] border-dashed"
+              style={{
+                width: `${350 + i * 180}px`,
+                height: `${350 + i * 180}px`,
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center text-center px-16">
+          <motion.div
+            style={{
+              x: useTransform(x, (v) => v * -0.6),
+              y: useTransform(y, (v) => v * -0.6),
+              rotateX: useTransform(y, (v) => v * 0.5),
+              rotateY: useTransform(x, (v) => v * -0.5),
+            }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="perspective-1000"
+          >
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="mb-10 p-10 bg-gradient-to-br from-white/[0.08] to-transparent backdrop-blur-3xl rounded-[48px] border border-white/10 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.6)] relative group cursor-none"
+            >
+              <Shield
+                className="w-16 h-16 text-primary relative z-10"
+                strokeWidth={1.5}
+              />
+              <motion.div
+                animate={{ opacity: [0.2, 0.5, 0.2], scale: [1, 1.2, 1] }}
+                transition={{ duration: 4, repeat: Infinity }}
+                className="absolute inset-0 blur-3xl bg-primary/30 rounded-full"
+              />
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <h1 className="text-4xl font-bold text-white tracking-tight mb-4 flex items-center gap-3 justify-center">
+              <span className="opacity-40 font-mono text-xl">0x</span>
+              {hasVault ? "VAULT_LOCKED" : "INIT_PROTOCOL"}
+            </h1>
+            <p className="text-slate-500 text-lg font-medium max-w-sm leading-relaxed">
+              {hasVault
+                ? "Local session is encrypted. Move your cursor to calibrate and enter the master key."
+                : "Establish a zero-knowledge core. This hardware-bound key secures your environment."}
+            </p>
+          </motion.div>
+        </div>
       </div>
 
-      {/* RIGHT SIDE: Form */}
-      <div className="w-full lg:w-5/12 flex items-center justify-center bg-white p-8">
-        <div className="max-w-sm w-full">
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <h2 className="text-3xl font-bold text-slate-800 mb-8">
-              {isCreateMode ? "Initialize Key" : "Master Password"}
-            </h2>
+      <div className="w-full lg:w-1/2 flex items-center justify-center relative bg-slate-950">
+        <motion.div
+          className="absolute inset-0 z-0 pointer-events-none opacity-50 transition-opacity"
+          style={{
+            background: `radial-gradient(600px circle at ${mousePos.x - window.innerWidth / 2}px ${mousePos.y}px, rgba(0,169,244,0.06), transparent 40%)`,
+          }}
+        />
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="relative">
-                <input
-                  type={showPass ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter Master Password"
-                  className="w-full h-14 pl-4 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#00A9F4] focus:ring-1 focus:ring-[#00A9F4] transition-all font-medium text-slate-700 placeholder:text-slate-400"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-4 text-slate-400 hover:text-[#00A9F4] transition-colors"
-                >
-                  {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+        <div className="h-full w-full flex flex-col justify-center px-12 lg:px-24 bg-white/[0.01] backdrop-blur-[80px] border-l border-white/5 relative">
+          <div className="max-w-[400px] w-full mx-auto relative z-10">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="mb-12"
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-2.5 bg-white/5 rounded-2xl border border-white/10">
+                  <img src={iconSvg} alt="Wave" className="w-6 h-6" />
+                </div>
+                <span className="text-white text-2xl font-bold tracking-tighter uppercase">
+                  Wave
+                </span>
               </div>
+              <div className="flex gap-1.5">
+                <div className="h-1 w-8 bg-primary rounded-full" />
+                <div className="h-1 w-2 bg-white/10 rounded-full" />
+                <div className="h-1 w-2 bg-white/10 rounded-full" />
+              </div>
+            </motion.div>
 
-              {isCreateMode && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  className="space-y-6"
-                >
-                  {/* Strength Meter */}
-                  <div className="space-y-2">
-                    <div className="flex h-1 gap-1">
-                      {[1, 2, 3, 4].map((step) => (
-                        <div
-                          key={step}
-                          className={`flex-1 rounded-full transition-colors duration-300 ${
-                            calculateStrength(password) >= step
-                              ? step < 3
-                                ? "bg-orange-400"
-                                : "bg-green-500"
-                              : "bg-slate-100"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-xs text-slate-400 font-medium text-right">
-                      Use numbers & symbols for strength
-                    </p>
+            <form onSubmit={handleSubmit} className="relative group">
+              <motion.div
+                animate={error ? { x: [-4, 4, -4, 4, 0] } : {}}
+                className="relative overflow-hidden rounded-3xl bg-white/[0.03] border border-white/10 p-3 transition-all duration-300 focus-within:bg-white/[0.05] focus-within:border-primary/40 focus-within:ring-[12px] focus-within:ring-primary/5"
+              >
+                <div className="flex items-center gap-5 px-3">
+                  <div className="text-slate-600 group-focus-within:text-primary transition-colors">
+                    {hasVault ? (
+                      <Fingerprint size={24} />
+                    ) : (
+                      <KeyRound size={24} />
+                    )}
                   </div>
-
                   <input
                     type="password"
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    placeholder="Confirm Master Password"
-                    className="w-full h-14 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#00A9F4] focus:ring-1 focus:ring-[#00A9F4] transition-all font-medium text-slate-700"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError("");
+                    }}
+                    placeholder="Master Key"
+                    className="w-full h-14 bg-transparent text-xl font-medium text-white placeholder:text-slate-700 outline-none"
+                    autoFocus
                   />
-                </motion.div>
-              )}
+                  <motion.button
+                    whileHover={{
+                      scale: 1.05,
+                      backgroundColor: "#00A9F4",
+                      color: "#fff",
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    disabled={!password || isSubmitting}
+                    className="h-12 w-12 bg-white text-slate-950 rounded-2xl flex items-center justify-center transition-all shadow-xl disabled:opacity-0 disabled:translate-x-8"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <ArrowRight size={22} />
+                    )}
+                  </motion.button>
+                </div>
+              </motion.div>
 
-              {error && (
-                <p className="text-red-500 text-sm font-semibold animate-pulse">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full h-14 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-70 flex items-center justify-center"
-              >
-                {isSubmitting ? (
-                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : isCreateMode ? (
-                  "Create Vault"
-                ) : (
-                  "Unlock Sanctuary"
+              <AnimatePresence mode="wait">
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: -10, filter: "blur(10px)" }}
+                    className="absolute top-full left-0 right-0 mt-6 flex items-center gap-3 text-rose-400 font-bold bg-rose-500/5 border border-rose-500/10 px-5 py-4 rounded-2xl backdrop-blur-md"
+                  >
+                    <div className="p-1.5 bg-rose-500/20 rounded-lg">
+                      <AlertTriangle size={16} />
+                    </div>
+                    <span className="text-[10px] uppercase tracking-[2px]">
+                      {error}
+                    </span>
+                  </motion.div>
                 )}
-              </button>
+              </AnimatePresence>
             </form>
 
-            <div className="mt-10 p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-[#00A9F4] shrink-0 mt-0.5" />
-              <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                AES-256 GCM authenticated encryption ensures data integrity. We
-                cannot recover your password if lost.
-              </p>
+            <div className="mt-16 grid grid-cols-2 gap-4">
+              {[
+                { icon: Lock, title: "AES-256-GCM", desc: "Encryption" },
+                { icon: Shield, title: "Zero-Knowledge", desc: "Architecture" },
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 + i * 0.1 }}
+                  className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all cursor-default"
+                >
+                  <item.icon size={18} className="text-primary/70 mb-4" />
+                  <div className="text-white text-sm font-bold tracking-tight">
+                    {item.title}
+                  </div>
+                  <div className="text-slate-600 text-[9px] uppercase tracking-widest mt-1 font-bold">
+                    {item.desc}
+                  </div>
+                </motion.div>
+              ))}
             </div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+            className="absolute bottom-10 left-12 right-12 flex justify-between items-center"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[9px] text-slate-500 font-bold tracking-[2px] uppercase">
+                Node Active
+              </span>
+            </div>
+            <span className="text-[9px] text-slate-700 font-mono">
+              v1.0.2-stable
+            </span>
           </motion.div>
         </div>
       </div>

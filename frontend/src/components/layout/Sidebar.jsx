@@ -8,10 +8,12 @@ import {
   User,
   ArrowLeft,
   LogOut,
-  MoreVertical,
+  ChevronRight,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+import iconSvg from "../../assets/icon.svg";
 
 const Sidebar = ({ isEditMode = false, onBack }) => {
   const navigate = useNavigate();
@@ -32,106 +34,107 @@ const Sidebar = ({ isEditMode = false, onBack }) => {
       await logout();
       navigate("/login");
     } catch (error) {
-      console.error("Failed to log out", error);
+      console.error("LOGOUT_FAILURE", error);
     }
   };
 
   return (
-    <div
-      className={`h-screen bg-white dark:bg-darkCard border-r border-slate-100 dark:border-slate-800 flex flex-col py-6 transition-all duration-300 z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)] ${isExtended ? "w-[240px]" : "w-[88px]"}`}
+    <motion.div
+      initial={false}
+      animate={{ width: isExtended ? 280 : 88 }}
       onMouseEnter={() => setIsExtended(true)}
       onMouseLeave={() => {
         setIsExtended(false);
         setShowUserMenu(false);
       }}
+      className="h-screen bg-white dark:bg-[#020617] border-r border-slate-100 dark:border-white/5 flex flex-col py-8 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] z-50 shadow-[20px_0_80px_rgba(0,0,0,0.02)]"
     >
-      {/* Brand / Back Button */}
-      <div className="px-5 mb-10">
+      <div className="px-6 mb-12 h-10 flex items-center overflow-hidden">
         {isEditMode ? (
           <button
             onClick={onBack || (() => navigate(-1))}
-            className="w-12 h-12 flex items-center justify-center bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl text-slate-600 dark:text-slate-300 transition-colors"
+            className="w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-white/5 hover:bg-primary hover:text-white rounded-xl text-slate-600 dark:text-slate-400 transition-all duration-300 group"
           >
-            <ArrowLeft size={22} />
+            <ArrowLeft
+              size={20}
+              className="group-hover:-translate-x-0.5 transition-transform"
+            />
           </button>
         ) : (
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-tr from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
-              <LayoutGrid size={24} />
-            </div>
-            {isExtended && (
-              <motion.span
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="font-black text-2xl tracking-tight text-slate-800 dark:text-white"
-              >
-                wave.
-              </motion.span>
-            )}
+          <div className="flex items-center gap-4 min-w-max">
+            <img src={iconSvg} alt="Logo" className="w-9 h-9 drop-shadow-sm" />
+            <AnimatePresence>
+              {isExtended && (
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase"
+                >
+                  Wave
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </div>
 
-      {/* Navigation */}
-      <div className="flex flex-col gap-2 px-3 flex-1">
+      <nav className="flex flex-col gap-1.5 px-4 flex-1">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <button
               key={item.label}
               onClick={() => navigate(item.path)}
-              className={`flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 relative group overflow-hidden ${
+              className={`flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 relative group ${
                 isActive
-                  ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                  : "hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-lg shadow-black/5"
+                  : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full" />
-              )}
-
               <item.icon
-                size={24}
-                className={
-                  isActive
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
-                }
+                size={22}
+                strokeWidth={isActive ? 2.5 : 2}
+                className="relative z-10"
               />
-
               {isExtended && (
                 <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-[15px] font-bold whitespace-nowrap"
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-[15px] font-bold tracking-tight z-10"
                 >
                   {item.label}
                 </motion.span>
               )}
+              {isActive && isExtended && (
+                <motion.div layoutId="activePill" className="ml-auto">
+                  <ChevronRight size={16} className="opacity-50" />
+                </motion.div>
+              )}
             </button>
           );
         })}
-      </div>
+      </nav>
 
-      {/* User Profile Section (Bottom) */}
-      <div className="px-3 mt-auto relative">
+      <div className="px-4 mt-auto relative">
         <AnimatePresence>
           {showUserMenu && isExtended && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="absolute bottom-full left-3 right-3 mb-2 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-2 overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="absolute bottom-24 left-4 right-4 bg-white dark:bg-[#0f172a] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 dark:border-white/5 p-2 z-50 overflow-hidden"
             >
               <button
                 onClick={() => navigate("/profile")}
-                className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors text-slate-600 dark:text-slate-300 text-sm font-bold"
+                className="w-full flex items-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-colors text-slate-600 dark:text-slate-300 text-sm font-bold"
               >
                 <User size={18} /> Profile
               </button>
+              <div className="h-px bg-slate-50 dark:bg-white/5 my-1" />
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 p-3 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors text-red-500 text-sm font-bold"
+                className="w-full flex items-center gap-3 p-4 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors text-red-500 text-sm font-bold"
               >
                 <LogOut size={18} /> Sign Out
               </button>
@@ -141,10 +144,27 @@ const Sidebar = ({ isEditMode = false, onBack }) => {
 
         <button
           onClick={() => isExtended && setShowUserMenu(!showUserMenu)}
-          className={`w-full flex items-center gap-3 p-2 rounded-[20px] border border-transparent hover:border-slate-100 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${!isExtended ? "justify-center" : ""}`}
+          className={`w-full group flex items-center gap-3 p-2 rounded-[24px] transition-all duration-300 ${
+            isExtended
+              ? "bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10"
+              : "justify-center"
+          }`}
         >
-          <div className="w-10 h-10 bg-slate-900 dark:bg-slate-700 text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0">
-            {currentUser?.displayName?.[0] || "U"}
+          <div className="relative shrink-0">
+            <div className="w-12 h-12 bg-slate-900 dark:bg-primary text-white rounded-[18px] flex items-center justify-center font-bold text-lg shadow-lg overflow-hidden group-hover:scale-95 transition-transform">
+              {currentUser?.photoURL ? (
+                <img
+                  src={currentUser.photoURL}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{currentUser?.email?.[0].toUpperCase() || "U"}</span>
+              )}
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-[#020617] rounded-full flex items-center justify-center border-2 border-white dark:border-[#020617]">
+              <Shield size={10} className="text-primary fill-primary/20" />
+            </div>
           </div>
 
           {isExtended && (
@@ -153,24 +173,17 @@ const Sidebar = ({ isEditMode = false, onBack }) => {
               animate={{ opacity: 1 }}
               className="flex-1 text-left overflow-hidden"
             >
-              <p className="text-sm font-bold text-slate-800 dark:text-white truncate">
+              <p className="text-sm font-black text-slate-900 dark:text-white truncate tracking-tight">
                 {currentUser?.displayName || "User"}
               </p>
-              <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                Free Plan
+              <p className="text-[10px] text-primary font-bold uppercase tracking-wider">
+                Pro Access
               </p>
             </motion.div>
           )}
-
-          {isExtended && (
-            <MoreVertical
-              size={16}
-              className="text-slate-400 dark:text-slate-500"
-            />
-          )}
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

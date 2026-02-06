@@ -12,7 +12,6 @@ export default {
       },
       colors: {
         primary: "#00A9F4",
-        // These keys create classes like bg-darkBg, bg-darkCard
         darkBg: "#0F172A",
         darkCard: "#1E293B",
         darkBorder: "#334155",
@@ -20,7 +19,10 @@ export default {
       animation: {
         float: "float 3s ease-in-out infinite",
         "fade-in-up": "fadeInUp 0.8s ease-out forwards",
-        "wave-slow": "wave 10s linear infinite",
+        "wave-ultra-slow": "wave-canvas 30s linear infinite",
+        "wave-slow": "wave-canvas 20s linear infinite",
+        "wave-medium": "wave-canvas 15s linear infinite",
+        "pulse-slow": "pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
       keyframes: {
         float: {
@@ -31,7 +33,7 @@ export default {
           "0%": { opacity: "0", transform: "translateY(20px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
-        wave: {
+        "wave-canvas": {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-50%)" },
         },
