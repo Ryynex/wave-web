@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Hash } from "lucide-react";
 
 const TagEditor = ({ tags, onAddTag, onRemoveTag }) => {
   const [input, setInput] = useState("");
@@ -17,27 +17,28 @@ const TagEditor = ({ tags, onAddTag, onRemoveTag }) => {
       {tags.map((tag) => (
         <span
           key={tag}
-          className="flex items-center gap-1 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium border border-blue-100 dark:border-blue-900/50"
+          className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-widest"
         >
-          #{tag}
+          <Hash size={10} className="opacity-50" />
+          {tag}
           <button
             onClick={() => onRemoveTag(tag)}
-            className="hover:text-blue-800 dark:hover:text-blue-300 ml-1"
+            className="hover:text-white ml-1 transition-colors"
           >
-            <X size={12} />
+            <X size={10} />
           </button>
         </span>
       ))}
 
-      <div className="flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg focus-within:ring-2 focus-within:ring-primary/20 border border-transparent dark:border-slate-700">
-        <Plus size={14} className="text-slate-400" />
+      <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-md border border-white/5 focus-within:border-primary/50 transition-colors">
+        <Plus size={12} className="text-slate-500" />
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Add tag..."
-          className="bg-transparent border-none outline-none text-sm w-24 placeholder:text-slate-400 dark:text-slate-200"
+          placeholder="New Tag..."
+          className="bg-transparent border-none outline-none text-xs text-white placeholder:text-slate-600 w-24 p-0 focus:ring-0"
         />
       </div>
     </div>

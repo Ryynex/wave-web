@@ -6,7 +6,7 @@ import { useToast } from "../context/ToastContext";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../config/firebase";
 import * as CryptoUtils from "../utils/cryptoUtils";
-import { loadFont } from "../utils/fontLoader"; // Import
+import { loadFont } from "../utils/fontLoader";
 import Sidebar from "../components/layout/Sidebar";
 import FormattingToolbar from "../components/entry/FormattingToolbar";
 import MoodSelector from "../components/entry/MoodSelector";
@@ -17,8 +17,9 @@ import {
   AlertCircle,
   Loader2,
   Star,
-  Calendar as CalendarIcon,
-  Tag,
+  ArrowLeft,
+  Calendar,
+  Hash,
 } from "lucide-react";
 
 const EditEntry = () => {
@@ -66,12 +67,9 @@ const EditEntry = () => {
               setTags(decrypted.tags || []);
               setIsFavorite(decrypted.isFavorite);
 
-              // Load Font
               const savedFont = decrypted.fontFamily || "plusJakartaSans";
               setFontFamily(savedFont);
               loadFont(savedFont);
-
-              if (decrypted.tags?.length > 0) setShowTags(true);
             }
           }
         } catch (e) {
@@ -84,7 +82,6 @@ const EditEntry = () => {
     init();
   }, [id, currentUser, masterKey]);
 
-  // Load font when user changes it in dropdown
   useEffect(() => {
     loadFont(fontFamily);
   }, [fontFamily]);
@@ -104,7 +101,7 @@ const EditEntry = () => {
           mood,
           tags,
           isFavorite,
-          fontFamily, // Save raw font name (e.g. "Dancing Script")
+          fontFamily,
         },
         masterKey,
       );
@@ -179,63 +176,85 @@ const EditEntry = () => {
 
   if (loading)
     return (
-      <div className="h-screen flex items-center justify-center dark:bg-darkBg dark:text-white">
-        Loading...
+      <div className="h-screen flex flex-col items-center justify-center bg-[#020617] text-primary">
+        <Loader2 className="w-8 h-8 animate-spin mb-4" />
+        <span className="text-[10px] font-black uppercase tracking-[3px]">
+          Accessing Vault...
+        </span>
       </div>
     );
 
   return (
-    <div className="flex h-screen bg-[#F9FAFB] dark:bg-darkBg overflow-hidden transition-colors duration-300">
+    <div className="flex h-screen bg-[#020617] text-slate-200 overflow-hidden font-sans">
       <Sidebar isEditMode={true} onBack={() => navigate("/")} />
 
-      <div className="flex-1 flex flex-col h-full relative">
-        <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-darkCard flex items-center px-6 justify-between shrink-0 z-10">
-          <div className="flex items-center gap-4">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300">
-              <CalendarIcon size={16} className="text-slate-400" />
-              <span className="font-semibold text-sm">
-                {format(date, "MMMM d, yyyy")}
-              </span>
+      <main className="flex-1 flex flex-col h-full relative z-10">
+        {/* TOP BAR: Navigation, Title, Save Status */}
+        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#020617]/50 backdrop-blur-xl shrink-0">
+          <div className="flex items-center gap-6 flex-1">
+            <button
+              onClick={() => navigate("/")}
+              className="text-slate-500 hover:text-white transition-colors"
+            >
+              <ArrowLeft size={18} />
             </button>
+            <div className="h-6 w-px bg-white/10" />
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Untitled Node"
+              style={{ fontFamily }}
+              className="bg-transparent border-none text-xl font-bold text-white placeholder:text-slate-600 focus:ring-0 px-0 w-full max-w-2xl"
+            />
           </div>
 
           <div className="flex items-center gap-4">
-            <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                saveStatus === "error"
-                  ? "bg-red-50 text-red-600"
-                  : saveStatus === "saved"
-                    ? "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400"
-                    : "bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-              }`}
-            >
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
               {saveStatus === "saving" && (
-                <Loader2 size={12} className="animate-spin" />
+                <Loader2 size={12} className="animate-spin text-primary" />
               )}
-              {saveStatus === "saved" && <CheckCircle2 size={12} />}
-              {saveStatus === "error" && <AlertCircle size={12} />}
+              {saveStatus === "saved" && (
+                <CheckCircle2 size={12} className="text-emerald-500" />
+              )}
+              {saveStatus === "error" && (
+                <AlertCircle size={12} className="text-red-500" />
+              )}
               <span>
                 {saveStatus === "saving"
-                  ? "Saving..."
+                  ? "Syncing..."
                   : saveStatus === "saved"
-                    ? "Saved"
+                    ? "Synced"
                     : "Error"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/5">
+              <Calendar size={12} className="text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                {format(date, "MMM dd")}
               </span>
             </div>
 
             <button
               onClick={() => setIsFavorite(!isFavorite)}
-              className="text-slate-400 hover:text-amber-400 transition-colors"
+              className={`p-2 rounded-full transition-all ${
+                isFavorite
+                  ? "bg-amber-500/10 text-amber-500"
+                  : "hover:bg-white/5 text-slate-600 hover:text-slate-300"
+              }`}
             >
               <Star
-                size={20}
-                className={isFavorite ? "fill-amber-400 text-amber-400" : ""}
+                size={16}
+                className={isFavorite ? "fill-current" : ""}
+                strokeWidth={isFavorite ? 0 : 2}
               />
             </button>
           </div>
-        </div>
+        </header>
 
-        <div className="bg-white dark:bg-darkCard border-b border-slate-200 dark:border-slate-800 py-1">
+        {/* TOOLBAR: Formatting, Mood, Tags */}
+        <div className="h-12 flex items-center justify-between px-6 border-b border-white/5 bg-[#020617] shrink-0">
           <FormattingToolbar
             onBold={() => insertText("**", "**")}
             onItalic={() => insertText("_", "_")}
@@ -244,66 +263,55 @@ const EditEntry = () => {
             font={fontFamily}
             onFontChange={setFontFamily}
           />
-        </div>
 
-        <div className="flex-1 overflow-y-auto bg-white dark:bg-darkCard">
-          <div className="max-w-3xl mx-auto px-12 py-10 min-h-full flex flex-col">
-            <div className="flex items-center gap-4 mb-6">
-              <MoodSelector selectedMood={mood} onMoodChanged={setMood} />
-              <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-700" />
-              <button
-                onClick={() => setShowTags(!showTags)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${showTags ? "border-primary bg-primary/5 text-primary" : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400"}`}
-              >
-                <Tag size={14} />
-                <span className="text-xs font-bold">
-                  {tags.length > 0 ? `${tags.length} Tags` : "Add Tags"}
-                </span>
-              </button>
-            </div>
-
-            {showTags && (
-              <div className="mb-8 animate-in fade-in slide-in-from-top-2">
-                <TagEditor
-                  tags={tags}
-                  onAddTag={(t) => setTags([...tags, t])}
-                  onRemoveTag={(t) => setTags(tags.filter((tag) => tag !== t))}
-                />
-              </div>
-            )}
-
-            {/* Title Input with Dynamic Font */}
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title"
-              style={{ fontFamily }}
-              className="text-4xl font-black text-slate-800 dark:text-white placeholder:text-slate-200 dark:placeholder:text-slate-700 border-none focus:outline-none focus:ring-0 bg-transparent w-full mb-6"
-            />
-
-            {/* Content Input with Dynamic Font */}
-            <textarea
-              ref={contentRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing..."
-              style={{ fontFamily }}
-              className="flex-1 w-full resize-none border-none focus:outline-none focus:ring-0 text-lg leading-relaxed text-slate-700 dark:text-slate-300 placeholder:text-slate-300 dark:placeholder:text-slate-700 bg-transparent"
-              spellCheck={false}
-            />
-
-            <div className="mt-20 pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-between text-xs text-slate-400 font-medium">
-              <span>
-                {content.split(/\s+/).filter((w) => w.length > 0).length} words
-              </span>
-              <span>
-                {lastSaved ? `Last saved ${format(lastSaved, "h:mm a")}` : ""}
-              </span>
-            </div>
+          <div className="flex items-center gap-4">
+            <div className="w-px h-4 bg-white/10" />
+            <MoodSelector selectedMood={mood} onMoodChanged={setMood} />
+            <button
+              onClick={() => setShowTags(!showTags)}
+              className={`flex items-center gap-2 px-3 py-1 rounded-md transition-all text-xs font-bold uppercase tracking-wider ${
+                showTags || tags.length > 0
+                  ? "bg-primary/10 text-primary"
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              <Hash size={14} />
+              <span>{tags.length > 0 ? `${tags.length} Tags` : "Tags"}</span>
+            </button>
           </div>
         </div>
-      </div>
+
+        {/* TAGS DRAWER (Conditional) */}
+        {showTags && (
+          <div className="px-6 py-3 border-b border-white/5 bg-white/[0.02] animate-in slide-in-from-top-2">
+            <TagEditor
+              tags={tags}
+              onAddTag={(t) => setTags([...tags, t])}
+              onRemoveTag={(t) => setTags(tags.filter((tag) => tag !== t))}
+            />
+          </div>
+        )}
+
+        {/* MAIN EDITOR AREA */}
+        <div className="flex-1 relative bg-[#020617]">
+          <textarea
+            ref={contentRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Start writing..."
+            style={{ fontFamily }}
+            className="absolute inset-0 w-full h-full p-8 bg-transparent border-none text-lg text-slate-300 placeholder:text-slate-700 leading-relaxed focus:ring-0 resize-none custom-scrollbar"
+            spellCheck={false}
+          />
+        </div>
+
+        {/* FOOTER INFO */}
+        <div className="absolute bottom-4 right-6 pointer-events-none opacity-50">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+            {content.split(/\s+/).filter((w) => w.length > 0).length} Words
+          </span>
+        </div>
+      </main>
     </div>
   );
 };
