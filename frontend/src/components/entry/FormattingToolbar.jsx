@@ -1,9 +1,17 @@
-import React, { useEffect, useState, useRef } from "react";
-import { Bold, Italic, List, Quote, Type, ChevronDown } from "lucide-react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import {
+  Bold,
+  Italic,
+  List,
+  Quote,
+  Type,
+  ChevronDown,
+  Check,
+} from "lucide-react";
 import { loadFont } from "../../utils/fontLoader";
 
-// (Keep GOOGLE_FONTS array as is, omitting for brevity in display but include in file)
 export const GOOGLE_FONTS = [
+  "plusJakartaSans",
   "Roboto",
   "Open Sans",
   "Lato",
@@ -107,6 +115,64 @@ export const GOOGLE_FONTS = [
   "Walter Turncoat",
 ];
 
+// Sub-component to handle lazy loading of fonts
+const FontOption = ({ fontName, isSelected, onSelect }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const elementRef = useRef(null);
+
+  useEffect(() => {
+    // Only set up observer if the element exists and isn't already visible
+    if (!elementRef.current || isVisible) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setIsVisible(true);
+          loadFont(fontName); // Load font only when it scrolls into view
+          observer.disconnect();
+        }
+      },
+      {
+        root: null, // viewport
+        rootMargin: "100px", // Preload fonts slightly before they appear
+        threshold: 0.1,
+      },
+    );
+
+    observer.observe(elementRef.current);
+
+    return () => observer.disconnect();
+  }, [fontName, isVisible]);
+
+  return (
+    <button
+      ref={elementRef}
+      onClick={() => onSelect(fontName)}
+      className={`flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-all ${
+        isSelected
+          ? "bg-primary/10 text-primary"
+          : "hover:bg-white/5 text-slate-300"
+      }`}
+    >
+      <span
+        className="text-sm truncate mr-4"
+        style={{
+          fontFamily:
+            fontName === "plusJakartaSans"
+              ? '"Plus Jakarta Sans", sans-serif'
+              : fontName,
+          // Only apply the font style if we've triggered the load (visibility)
+          // otherwise it might cause layout thrashing
+          opacity: isVisible ? 1 : 0.7,
+        }}
+      >
+        {fontName === "plusJakartaSans" ? "Default (Jakarta)" : fontName}
+      </span>
+      {isSelected && <Check size={12} />}
+    </button>
+  );
+};
+
 const FormattingToolbar = ({
   onBold,
   onItalic,
@@ -118,6 +184,7 @@ const FormattingToolbar = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  // Load the active font immediately so the editor looks right
   useEffect(() => {
     loadFont(font);
   }, [font]);
@@ -146,16 +213,16 @@ const FormattingToolbar = ({
     <div className="flex items-center gap-1">
       <Button icon={Bold} onClick={onBold} tooltip="Bold" />
       <Button icon={Italic} onClick={onItalic} tooltip="Italic" />
-      <div className="w-px h-3 bg-white/10 mx-2" />
       <Button icon={List} onClick={onList} tooltip="List" />
       <Button icon={Quote} onClick={onQuote} tooltip="Quote" />
+
       <div className="w-px h-3 bg-white/10 mx-2" />
 
       {/* Font Selector */}
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 transition-colors group"
+          className={`flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 transition-colors group`}
         >
           <Type
             size={14}
@@ -171,40 +238,25 @@ const FormattingToolbar = ({
         </button>
 
         {isOpen && (
-          <div className="absolute top-full left-0 mt-2 w-56 max-h-64 overflow-y-auto bg-[#0f172a] rounded-lg shadow-xl border border-white/10 z-50 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+          <div className="absolute top-full left-0 mt-2 w-64 max-h-[300px] overflow-y-auto bg-[#1e293b] rounded-lg shadow-2xl border border-white/10 z-50 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
             <div className="p-1 grid gap-0.5">
-              <button
-                onClick={() => {
-                  onFontChange("plusJakartaSans");
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-md transition-colors ${
-                  font === "plusJakartaSans"
-                    ? "bg-primary/10 text-primary"
-                    : "hover:bg-white/5 text-slate-400"
-                }`}
-              >
-                Default (Jakarta)
-              </button>
+              <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 sticky top-0 bg-[#1e293b] z-10">
+                Select Typeface
+              </div>
 
-              {GOOGLE_FONTS.map((fontName) => (
-                <button
-                  key={fontName}
-                  onMouseEnter={() => loadFont(fontName)}
-                  onClick={() => {
-                    onFontChange(fontName);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors truncate ${
-                    font === fontName
-                      ? "bg-primary/10 text-primary"
-                      : "hover:bg-white/5 text-slate-300"
-                  }`}
-                  style={{ fontFamily: fontName }}
-                >
-                  {fontName}
-                </button>
-              ))}
+              <div className="pb-1">
+                {GOOGLE_FONTS.map((fontName) => (
+                  <FontOption
+                    key={fontName}
+                    fontName={fontName}
+                    isSelected={font === fontName}
+                    onSelect={(f) => {
+                      onFontChange(f);
+                      setIsOpen(false);
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         )}

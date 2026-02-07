@@ -174,6 +174,15 @@ const EditEntry = () => {
     }, 0);
   };
 
+  // Logic to return to Read Page if ID exists, else Dashboard
+  const handleBack = () => {
+    if (id) {
+      navigate(`/entry/${id}`);
+    } else {
+      navigate("/");
+    }
+  };
+
   if (loading)
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-[#020617] text-primary">
@@ -186,14 +195,14 @@ const EditEntry = () => {
 
   return (
     <div className="flex h-screen bg-[#020617] text-slate-200 overflow-hidden font-sans">
-      <Sidebar isEditMode={true} onBack={() => navigate("/")} />
+      <Sidebar />
 
       <main className="flex-1 flex flex-col h-full relative z-10">
-        {/* TOP BAR: Navigation, Title, Save Status */}
-        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#020617]/50 backdrop-blur-xl shrink-0">
+        {/* TOP BAR: Header (Z-Index 40) */}
+        <header className="relative z-40 h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#020617]/50 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-6 flex-1">
             <button
-              onClick={() => navigate("/")}
+              onClick={handleBack}
               className="text-slate-500 hover:text-white transition-colors"
             >
               <ArrowLeft size={18} />
@@ -253,8 +262,8 @@ const EditEntry = () => {
           </div>
         </header>
 
-        {/* TOOLBAR: Formatting, Mood, Tags */}
-        <div className="h-12 flex items-center justify-between px-6 border-b border-white/5 bg-[#020617] shrink-0">
+        {/* TOOLBAR: Formatting, Mood, Tags (Z-Index 50 to allow dropdowns) */}
+        <div className="relative z-50 h-12 flex items-center justify-between px-6 border-b border-white/5 bg-[#020617] shrink-0">
           <FormattingToolbar
             onBold={() => insertText("**", "**")}
             onItalic={() => insertText("_", "_")}
@@ -281,9 +290,9 @@ const EditEntry = () => {
           </div>
         </div>
 
-        {/* TAGS DRAWER (Conditional) */}
+        {/* TAGS DRAWER (Z-Index 30) */}
         {showTags && (
-          <div className="px-6 py-3 border-b border-white/5 bg-white/[0.02] animate-in slide-in-from-top-2">
+          <div className="relative z-30 px-6 py-3 border-b border-white/5 bg-white/[0.02] animate-in slide-in-from-top-2">
             <TagEditor
               tags={tags}
               onAddTag={(t) => setTags([...tags, t])}
@@ -292,8 +301,8 @@ const EditEntry = () => {
           </div>
         )}
 
-        {/* MAIN EDITOR AREA */}
-        <div className="flex-1 relative bg-[#020617]">
+        {/* MAIN EDITOR AREA (Z-Index 0) */}
+        <div className="flex-1 relative bg-[#020617] z-0">
           <textarea
             ref={contentRef}
             value={content}
@@ -306,7 +315,7 @@ const EditEntry = () => {
         </div>
 
         {/* FOOTER INFO */}
-        <div className="absolute bottom-4 right-6 pointer-events-none opacity-50">
+        <div className="absolute bottom-4 right-6 pointer-events-none opacity-50 z-20">
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
             {content.split(/\s+/).filter((w) => w.length > 0).length} Words
           </span>
